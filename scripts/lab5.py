@@ -2,10 +2,10 @@
 # pyspark --master local[2]
 #
 # To run this script:
-# spark-submit --master local[2] lab4.py
+# spark-submit --master local[2] lab5.py
 
 from pyspark import SparkContext, SparkConf;
-conf = SparkConf().setAppName("Lab4");
+conf = SparkConf().setAppName("Lab5");
 sc = SparkContext(conf = conf);
 
 import os;
