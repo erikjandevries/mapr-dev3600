@@ -18,7 +18,7 @@ inputRDD = sc.textFile("/user/user01/data/auctiondata.csv").map(lambda l: l.spli
 
 
 auctions = inputRDD.map(lambda p:
-                Row(  auctionid = p[0 ]
+                Row(  auctionid = p[0]
                     , bid       = float(p[1])
                     , bidtime   = float(p[2])
                     , bidder    = p[3]
