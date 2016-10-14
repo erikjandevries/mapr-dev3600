@@ -7,6 +7,8 @@ Scripts are to be executed with a fresh, clean installation of the [MapR sandbox
 * http://learn.mapr.com/dev-361-build-and-monitor-apache-spark-applications
 * http://learn.mapr.com/dev-362-create-data-pipelines-using-apache-spark
 
+The required data files can be downloaded from the MapR training website after registering for one of these trainings.
+
 ### PySpark
 
 To launch a pyspark shell in the terminal:
