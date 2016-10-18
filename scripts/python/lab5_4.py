@@ -8,7 +8,7 @@
 from pyspark import SparkContext,SparkConf
 from pyspark.sql import SQLContext, Row
 import pyspark.sql.functions as func
-conf = SparkConf().setAppName("ResolutionApp")
+conf = SparkConf().setAppName("Lab5_4_ResolutionApp")
 sc = SparkContext(conf=conf)
 sqlContext = SQLContext(sc)
 
