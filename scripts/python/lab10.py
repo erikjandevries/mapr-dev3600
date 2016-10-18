@@ -36,6 +36,8 @@ usersDF.registerTempTable("users")
 
 print "Ratings"
 ratingsRDD = sc.textFile(dataFolder + "/ratings.dat").map(lambda rating: rating.split("::"))
+# ratingsRDD.cache()
+print ratingsRDD.take(5)
 ratingsSchema = ratingsRDD.map(lambda rating: Row(
                       user    = int(rating[0])
                     , product = int(rating[1])
@@ -82,25 +84,44 @@ results.show()
 print "========================================================================"
 print "Lab 10.2 - Use Spark to Make Movie Recommendations"
 
-from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
-
-print "----------------------------------"
-print "Using ALS to Build a Matrix Factorization Model with the Movie Ratings data"
-
 (trainingRatingsRDD, testRatingsRDD) = ratingsRDD.randomSplit([0.8, 0.2])
+(trainingRatingsDF, testRatingsDF) = ratingsDF.randomSplit([0.8, 0.2])
 
 numTraining = trainingRatingsRDD.count()
 numTest = testRatingsRDD.count()
 print "Training ratings:", numTraining
 print "Test ratings:    ", numTest
 
-rank = 20
-numIterations = 10
-model = ALS.train(trainingRatingsRDD, rank, numIterations)
-
 print "----------------------------------"
-print "Making Predictions with the MatrixFactorizationModel"
+print "Using ALS to Build a Matrix Factorization Model with the Movie Ratings data"
 
 print "__ not yet implemented __"
-# topRecsForUser = model.recommendProducts(4169, 5)
-# movieTitles = moviesDF.map(lambda x: (x[0], x[1])).collectAsMap()
+
+# # from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
+# from pyspark.ml.recommendation import ALS
+# from pyspark.ml.evaluation import RegressionEvaluator
+#
+# # rank = 20
+# # numIterations = 10
+# # model = ALS.train(trainingRatingsRDD, rank, numIterations, 0.01)
+#
+# als = ALS(  maxIter = 5
+#           , regParam = 0.01
+#           , userCol = "user"
+#           , itemCol = "product"
+#           , ratingCol = "rating")
+# model = als.fit(trainingRatingsDF)
+#
+# print "----------------------------------"
+# # print "Making Predictions with the MatrixFactorizationModel"
+# print "Making Predictions with the model"
+#
+# # # topRecsForUser = model.recommendProducts(4169, 5)
+# # # movieTitles = moviesDF.map(lambda x: (x[0], x[1])).collectAsMap()
+#
+# predictions = model.transform(testRatingsDF)
+# evaluator = RegressionEvaluator(  metricName="rmse"
+#                                 , labelCol="rating"
+#                                 , predictionCol="prediction")
+# rmse = evaluator.evaluate(predictions)
+# print("Root-mean-square error = " + str(rmse))

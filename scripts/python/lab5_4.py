@@ -12,6 +12,8 @@ conf = SparkConf().setAppName("ResolutionApp")
 sc = SparkContext(conf=conf)
 sqlContext = SQLContext(sc)
 
+import os, shutil
+
 
 #1. Create input RDD
 sfpdRDD = sc.textFile("/user/user01/data/sfpd.csv").map(lambda inc: inc.split(","))
