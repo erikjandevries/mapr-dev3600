@@ -1,6 +1,10 @@
 from pyspark import SparkContext, SparkConf;
-conf = SparkConf().setAppName("Lab5");
+conf = SparkConf().setAppName("Lab10");
 sc = SparkContext(conf = conf);
+
+import os
+
+## See also: https://www.codementor.io/spark/tutorial/building-a-recommender-with-apache-spark-python-example-app-part1
 
 print "========================================================================"
 print "Lab 10.1 - Load and Inspect data using the Spark Shell"
@@ -10,7 +14,9 @@ from pyspark.sql import SQLContext, Row
 import pyspark.sql.functions as func
 sqlContext = SQLContext(sc)
 
-dataFolder = "/user/user01/data"
+userFolder = "/user/user01"
+dataFolder = userFolder + "/data"
+modelsFolder = userFolder + "/models"
 
 #Create input RDD
 print "Movies"
@@ -36,7 +42,7 @@ usersDF.registerTempTable("users")
 
 print "Ratings"
 ratingsRDD = sc.textFile(dataFolder + "/ratings.dat").map(lambda rating: rating.split("::"))
-# ratingsRDD.cache()
+ratingsRDD.cache()
 print ratingsRDD.take(5)
 ratingsSchema = ratingsRDD.map(lambda rating: Row(
                       user    = int(rating[0])
@@ -84,6 +90,8 @@ results.show()
 print "========================================================================"
 print "Lab 10.2 - Use Spark to Make Movie Recommendations"
 
+print "----------------------------------"
+print "Splitting dataset into training and test sets"
 (trainingRatingsRDD, testRatingsRDD) = ratingsRDD.randomSplit([0.8, 0.2])
 (trainingRatingsDF, testRatingsDF) = ratingsDF.randomSplit([0.8, 0.2])
 
@@ -95,7 +103,7 @@ print "Test ratings:    ", numTest
 print "----------------------------------"
 print "Using ALS to Build a Matrix Factorization Model with the Movie Ratings data"
 
-print "__ not yet implemented __"
+# print "__ not yet implemented __"
 
 # # from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
 # from pyspark.ml.recommendation import ALS
@@ -125,3 +133,30 @@ print "__ not yet implemented __"
 #                                 , predictionCol="prediction")
 # rmse = evaluator.evaluate(predictions)
 # print("Root-mean-square error = " + str(rmse))
+
+print("Importing Rating")
+from pyspark.mllib.recommendation import Rating
+print("Importing ALS")
+from pyspark.mllib.recommendation import ALS
+
+model_path = modelsFolder + "/MovieRecommendation"
+if os.path.exists(model_path):
+    print("Importing MatrixFactorizationModel")
+    from pyspark.mllib.recommendation import MatrixFactorizationModel
+    model = MatrixFactorizationModel.load(sc, model_path)
+else:
+    print("Training model")
+    rank = 20
+    numIterations = 10
+    model = ALS.train(trainingRatingsRDD.map(lambda r: (r[0], r[1], r[2])) # filter User, Product, Rating
+                    , rank, numIterations, 0.01)
+    print("Saving model")
+    model.save(sc, model_path)
+
+print "----------------------------------"
+print "Making predictions"
+topRecsForUser = model.recommendProducts(4169, 5)
+print topRecsForUser
+
+# movieTitles = moviesDF.map(lambda x: (x[0], x[1])).collectAsMap()
+# print movieTitles
