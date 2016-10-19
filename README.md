@@ -23,7 +23,8 @@ To execute `script.py`:
 
 After setting up a fresh, clean installation of the [MapR sandbox virtual machine](https://www.mapr.com/products/mapr-sandbox-hadoop/download)
 you can copy the necessary files to the vm using the `scp_files_to_vm.R` script.
-_You need to have [R](https://www.r-project.org/) installed to run this script._
+_You need to have [PuTTY](http://www.chiark.greenend.org.uk/~sgtatham/putty/download.html)
+(specifically Plink and PSCP) and [R](https://www.r-project.org/) installed to run this script._
 Make sure to check the settings at the start of this script and modify as required!
 
 Next you can run the script files in the `scripts` folder using `spark-submit`.
