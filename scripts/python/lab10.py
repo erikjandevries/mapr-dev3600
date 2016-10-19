@@ -53,19 +53,19 @@ ratingsSchema = ratingsRDD.map(lambda rating: Row(
 ratingsDF = sqlContext.createDataFrame(ratingsSchema)
 ratingsDF.registerTempTable("ratings")
 
-print "----------------------------------"
-print "Some statistics about the ratings..."
-numRatings = ratingsRDD.count()
-print "Number of ratings: ", numRatings
-
-numMovies = ratingsRDD.map(lambda x:x[1]).distinct().count()
-print "Number of movies: ", numMovies
-
-numUsers = ratingsRDD.map(lambda x:x[0]).distinct().count()
-print "Number of users: ", numUsers
-
-numZip = ratingsRDD.map(lambda x:x[3]).distinct().count()
-print "Number of zips: ", numZip
+# print "----------------------------------"
+# print "Some statistics about the ratings..."
+# numRatings = ratingsRDD.count()
+# print "Number of ratings: ", numRatings
+#
+# numMovies = ratingsRDD.map(lambda x:x[1]).distinct().count()
+# print "Number of movies: ", numMovies
+#
+# numUsers = ratingsRDD.map(lambda x:x[0]).distinct().count()
+# print "Number of users: ", numUsers
+#
+# numZip = ratingsRDD.map(lambda x:x[3]).distinct().count()
+# print "Number of zips: ", numZip
 
 print "-----------------------------------------------------------"
 print "Explore and Query the Movie Lens data with Spark DataFrames"
@@ -74,14 +74,14 @@ usersDF.printSchema()
 moviesDF.printSchema()
 ratingsDF.printSchema()
 
-# Get the max, min ratings along with the count of users who have rated a movie.
-results = sqlContext.sql("SELECT movies.title, movierates.maxr, movierates.minr, movierates.cntu from(SELECT ratings.product, max(ratings.rating) as maxr, min(ratings.rating) as minr,count(distinct user) as cntu FROM ratings group by ratings.product ) movierates join movies on movierates.product=movies.movieId order by movierates.cntu desc")
-results.show()
-
-# Show the top 10 most-active users and how many times they rated a movie
-mostActiveUsersSchemaRDD = sqlContext.sql("SELECT ratings.user, count(*) as ct from ratings group by ratings.user order by ct desc limit 10")
-mostActiveUsersSchemaRDD.show()
-# println(mostActiveUsersSchemaRDD.collect().mkString("\n"))
+# # Get the max, min ratings along with the count of users who have rated a movie.
+# results = sqlContext.sql("SELECT movies.title, movierates.maxr, movierates.minr, movierates.cntu from(SELECT ratings.product, max(ratings.rating) as maxr, min(ratings.rating) as minr,count(distinct user) as cntu FROM ratings group by ratings.product ) movierates join movies on movierates.product=movies.movieId order by movierates.cntu desc")
+# results.show()
+#
+# # Show the top 10 most-active users and how many times they rated a movie
+# mostActiveUsersSchemaRDD = sqlContext.sql("SELECT ratings.user, count(*) as ct from ratings group by ratings.user order by ct desc limit 10")
+# mostActiveUsersSchemaRDD.show()
+# # println(mostActiveUsersSchemaRDD.collect().mkString("\n"))
 
 # Find the movies that user 4169 rated higher than 4
 results = sqlContext.sql("SELECT ratings.user, ratings.product, ratings.rating, movies.title FROM ratings JOIN movies ON movies.movieId=ratings.product where ratings.user=4169 and ratings.rating > 4")
@@ -102,37 +102,6 @@ print "Test ratings:    ", numTest
 
 print "----------------------------------"
 print "Using ALS to Build a Matrix Factorization Model with the Movie Ratings data"
-
-# print "__ not yet implemented __"
-
-# # from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
-# from pyspark.ml.recommendation import ALS
-# from pyspark.ml.evaluation import RegressionEvaluator
-#
-# # rank = 20
-# # numIterations = 10
-# # model = ALS.train(trainingRatingsRDD, rank, numIterations, 0.01)
-#
-# als = ALS(  maxIter = 5
-#           , regParam = 0.01
-#           , userCol = "user"
-#           , itemCol = "product"
-#           , ratingCol = "rating")
-# model = als.fit(trainingRatingsDF)
-#
-# print "----------------------------------"
-# # print "Making Predictions with the MatrixFactorizationModel"
-# print "Making Predictions with the model"
-#
-# # # topRecsForUser = model.recommendProducts(4169, 5)
-# # # movieTitles = moviesDF.map(lambda x: (x[0], x[1])).collectAsMap()
-#
-# predictions = model.transform(testRatingsDF)
-# evaluator = RegressionEvaluator(  metricName="rmse"
-#                                 , labelCol="rating"
-#                                 , predictionCol="prediction")
-# rmse = evaluator.evaluate(predictions)
-# print("Root-mean-square error = " + str(rmse))
 
 print("Importing Rating")
 from pyspark.mllib.recommendation import Rating
@@ -155,8 +124,41 @@ else:
 
 print "----------------------------------"
 print "Making predictions"
-topRecsForUser = model.recommendProducts(4169, 5)
+topRecsForUser = model.recommendProducts(4169, 10)
 print topRecsForUser
 
-# movieTitles = moviesDF.map(lambda x: (x[0], x[1])).collectAsMap()
-# print movieTitles
+movieTitles = moviesDF.map(lambda x: (x[0], x[1])).collectAsMap()
+topRecommendationsForUser = [(movieTitles[r.product], r.rating) for r in topRecsForUser]
+print topRecommendationsForUser
+
+predictionsForTestRDD  = model.predictAll(testRatingsRDD.map(lambda r: (r[0], r[1])))
+print predictionsForTestRDD.take(10)
+
+
+print "------------------------------------------------"
+print "Compare predictions with actuals for test set"
+
+
+predictionsKeyedByUserProductRDD = predictionsForTestRDD.map(lambda r: ((r[0], r[1]), r[2]))
+# print predictionsKeyedByUserProductRDD.take(5)
+testKeyedByUserProductRDD = testRatingsRDD.map(lambda r: ((int(r[0]), int(r[1])), float(r[2])))
+# print testKeyedByUserProductRDD.take(5)
+
+testAndPredictionsJoinedRDD = testKeyedByUserProductRDD.join(predictionsKeyedByUserProductRDD)
+print testAndPredictionsJoinedRDD.take(10)
+
+print "------------------------------------------------"
+print "Analyse differences"
+
+falsePositives = testAndPredictionsJoinedRDD.filter(lambda x: ((x[1][0] <= 1) & (x[1][1] >= 4)))
+  # case ((user, product), (ratingT, ratingP)) => (ratingT <= 1 && ratingP >=4)
+print falsePositives.count()
+
+sumAbsoluteError = testAndPredictionsJoinedRDD.map(lambda x: abs(x[1][0] - x[1][1])).sum()
+print sumAbsoluteError
+
+countAbsoluteError = testAndPredictionsJoinedRDD.map(lambda x: abs(x[1][0] - x[1][1])).count()
+print countAbsoluteError
+
+meanAbsoluteError = testAndPredictionsJoinedRDD.map(lambda x: abs(x[1][0] - x[1][1])).mean()
+print meanAbsoluteError
