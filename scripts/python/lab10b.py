@@ -48,15 +48,16 @@ flightsSchema = flightsRDD.map(lambda flight: Row(
                     , arrdelay       = float(flight[14])
                     , crselapsedtime = float(flight[15])
                     , dist           = int(flight[16])
-                    , label          = (1 if float(flight[11]) > 40 else 0)
+                    , label          = (1 if float(flight[14]) > 40 else 0)
                     # , fts            = ["dofM", "dofW", "carrier", "tailnum", "flnum", "org_id", "dest_id"]
-                    , fts = Vectors.dense([ float(flight[9])
-                                          , float(flight[10])
-                                          , float(flight[11])
-                                          , float(flight[12])
-                                          , float(flight[13])
-                                          , float(flight[14])
-                                          , float(flight[15])
+                    , fts = Vectors.dense([ float(flight[10])
+                                        #     float(flight[9])
+                                        #   , float(flight[10])
+                                        #   , float(flight[11])
+                                        #   , float(flight[12])
+                                        #   , float(flight[13])
+                                        #   , float(flight[14]) # this is the delay column
+                                        #   , float(flight[15])
                                          ])
                     ))
 
@@ -97,7 +98,18 @@ print "Index labels, adding metadata to the label column."
 labelIndexer = StringIndexer(inputCol="label", outputCol="indexedLabel").fit(flightsDF)
 print "Automatically identify categorical features, and index them."
 # We specify maxCategories so features with > 4 distinct values are treated as continuous.
-featureIndexer = VectorIndexer(inputCol="features", outputCol="indexedFeatures", maxCategories=4).fit(flightsDF)
+featureIndexer = VectorIndexer(inputCol="features", outputCol="indexedFeatures", maxCategories=4).fit(
+                    flightsDF.select([ "label"
+                                     , "dofM"
+                                     , "dofW"
+                                     , "crsdeptime"
+                                     , "crsarrtime"
+                                     , "carrier"
+                                     , "crselapsedtime"
+                                     , "origin"
+                                     , "dest"
+                                     , "features"
+                                    ]))
 
 
 
